@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget distributeur 4/3 piloté — Choix du centre</title>
+</head>
+<body style="margin:0;padding:24px;font-family:Arial,Helvetica,sans-serif;background:#f3f3f3">
+
+<!-- ====== DÉBUT DU WIDGET : copiez tout jusqu'à « FIN DU WIDGET » dans votre page ====== -->
+<style>
+.dv3{max-width:920px;margin:auto;padding:16px;background:#fff;color:#000;border:1px solid #ccc;border-radius:10px;font-family:Arial,Helvetica,sans-serif}
+.dv3 svg{width:100%;height:auto;display:block}
+.dv3 text{font-family:Arial,Helvetica,sans-serif;fill:#000}
+.dv3 .pipe,.dv3 .duct{fill:none;stroke-linejoin:round}
+.dv3 .pipe{stroke-width:12}.dv3 .duct{stroke-width:18;stroke:#1F6FD0}
+.dv3 .fl{fill:none;stroke:#fff;stroke-width:3;stroke-dasharray:2 12;stroke-linecap:round;opacity:0}
+.dv3 .fl.on{opacity:.95;animation:dv3f .6s linear infinite}
+.dv3 .fl.rev{animation-direction:reverse}
+@keyframes dv3f{to{stroke-dashoffset:-14}}
+.dv3 .pop{animation:dv3p .4s both}
+@keyframes dv3p{from{opacity:0}to{opacity:1}}
+.dv3 .ctrl-label{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;color:#444;margin:0 0 6px}
+.dv3 .bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.dv3 .btn{position:relative;flex:1 1 180px}
+.dv3 button{width:100%;padding:9px 10px;font:inherit;font-size:14px;font-weight:bold;color:#000;background:#fff;border:2px solid #000;border-radius:6px;cursor:pointer;transition:background .15s,color .15s}
+.dv3 button:hover{background:#f0f0f0}
+.dv3 button[aria-pressed=true]{background:#000;color:#fff}
+.dv3 .cbar button[aria-pressed=true]{background:#1F6FD0;border-color:#1F6FD0;color:#fff}
+.dv3 button:focus-visible{outline:3px solid #1F6FD0;outline-offset:2px}
+.dv3 .tip{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:5;background:#000;color:#fff;padding:10px 12px;border-radius:6px;font-size:13px;line-height:1.45;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.dv3 .btn:hover .tip,.dv3 .btn:focus-within .tip{display:block}
+.dv3 .cap{min-height:5.4em;margin:10px 0;padding:10px 12px;background:#f8f9fa;border-left:4px solid #000;border-radius:0 6px 6px 0;line-height:1.45;font-size:14.5px}
+.dv3 .leg{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+.dv3 .leg i{display:inline-block;width:22px;height:8px;border-radius:4px;margin-right:6px;vertical-align:middle}
+.dv3 .sym{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid #ddd}
+.dv3 h3{margin:0 0 6px;font-size:16px}
+.dv3 ol{margin:0 0 8px;padding-left:20px;line-height:1.45;font-size:14px}
+.dv3 .usecase{margin:6px 0 0;font-size:13.5px;color:#222;background:#eef5fc;padding:8px 10px;border-radius:6px}
+@media (max-width:640px){.dv3 .sym{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.dv3 .fl.on,.dv3 .pop{animation:none}}
+</style>
+
+<div class="dv3" id="dv3">
+  <p class="ctrl-label">1. Choisir le type de centre du distributeur :</p>
+  <div class="bar cbar" role="group" aria-label="Type de centre du distributeur">
+    <div class="btn"><button type="button" data-c="closed" aria-pressed="true">Centre fermé</button></div>
+    <div class="btn"><button type="button" data-c="open" aria-pressed="false">Centre ouvert</button></div>
+    <div class="btn"><button type="button" data-c="tandem" aria-pressed="false">Centre tandem</button></div>
+    <div class="btn"><button type="button" data-c="y" aria-pressed="false">Centre en Y (chaise)</button></div>
+  </div>
+
+  <p class="ctrl-label">2. Commander le pilotage du tiroir :</p>
+  <div class="bar pbar" role="group" aria-label="Position du tiroir">
+    <div class="btn"><button type="button" data-p="2" aria-pressed="false" aria-describedby="t2">Pilotage 2 : tiroir vers la droite</button><span class="tip" id="t2" role="tooltip"></span></div>
+    <div class="btn"><button type="button" data-p="0" aria-pressed="true" aria-describedby="t0">Aucun pilotage : tiroir au centre</button><span class="tip" id="t0" role="tooltip"></span></div>
+    <div class="btn"><button type="button" data-p="1" aria-pressed="false" aria-describedby="t1">Pilotage 1 : tiroir vers la gauche</button><span class="tip" id="t1" role="tooltip"></span></div>
+  </div>
+
+  <svg viewBox="0 0 900 500" role="img" aria-label="Coupe d’un distributeur 4/3 piloté et vérin double effet">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#000"/></marker>
+    <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#E02B2B"/></marker>
+  </defs>
+  <g transform="translate(40 0)">
+    <!-- Corps du distributeur -->
+    <rect x="10" y="40" width="800" height="170" fill="#E6E6E6" stroke="#000" stroke-width="2"/>
+    <!-- Conduit supérieur reliant les chambres d'extrémité à T -->
+    <path class="duct" d="M205 100V68H600V100"/>
+    <path id="dU" class="fl" d="M205 100V68H600V100"/>
+    <!-- Alésage du tiroir -->
+    <rect x="30" y="100" width="760" height="60" fill="#fff"/>
+    <!-- Chambres de pilotage -->
+    <rect id="pl" x="10" y="118" width="20" height="24" fill="#D8D8D8"/><rect id="pr" x="790" y="118" width="20" height="24" fill="#D8D8D8"/>
+    <rect id="pL" y="100" height="60" fill="#D8D8D8"/><rect id="pR" y="100" height="60" fill="#D8D8D8"/>
+    <!-- Chambres internes dynamiques -->
+    <rect id="ch0" y="100" height="60"/><rect id="ch1" y="100" height="60"/><rect id="ch2" y="100" height="60"/>
+    <!-- Canaux d'orifices dans le corps -->
+    <rect id="rB" x="279" y="160" width="44" height="50"/><rect id="rP" x="358" y="160" width="70" height="50"/>
+    <rect id="rA" x="477" y="160" width="44" height="50"/><rect id="rT" x="578" y="160" width="44" height="50"/>
+    <!-- Tiroir mobile (dessiné dynamiquement selon le type de centre) -->
+    <g id="spool"></g>
+    <!-- Bordure d'alésage -->
+    <rect x="30" y="100" width="760" height="60" fill="none" stroke="#000" stroke-width="1.5"/>
+    <!-- Tuyauteries et flux -->
+    <g id="pipes"></g>
+    <!-- Flèches de pilotage -->
+    <line id="ar2" x1="-36" y1="130" x2="8" y2="130" stroke="#000" stroke-width="3" marker-end="url(#ah)"/>
+    <line id="ar1" x1="846" y1="130" x2="812" y2="130" stroke="#000" stroke-width="3" marker-end="url(#ah)"/>
+    <text x="-32" y="116" style="font-weight:bold;font-size:20px">2</text><text x="834" y="116" style="font-weight:bold;font-size:20px">1</text>
+    <text id="titleSvg" x="10" y="30" style="font-weight:bold;font-size:15px">Distributeur 4/3 à centre fermé (2D)</text>
+    <g style="font-weight:bold;font-size:22px" text-anchor="middle"><text x="279" y="234">B</text><text x="371" y="234">P</text><text x="477" y="234">A</text><text x="578" y="234">T</text></g>
+    <!-- Pompe & Réservoir -->
+    <circle cx="393" cy="292" r="22" fill="#fff" stroke="#000" stroke-width="3"/><path d="M383 302 L393 282 L403 302 Z" fill="#E02B2B"/>
+    <text x="425" y="297" style="font-size:15px">Pompe (1P)</text>
+    <path d="M570 270 v40 h60 v-40" fill="none" stroke="#000" stroke-width="3"/>
+    <text x="600" y="332" text-anchor="middle" style="font-size:15px">Réservoir (0T)</text>
+    <!-- Vérin double effet -->
+    <rect x="275" y="380" width="250" height="70" fill="#fff"/>
+    <rect id="cRod" x="280" y="385" height="60"/><rect id="cCap" y="385" height="60"/>
+    <rect id="rod" y="408" width="240" height="14" fill="#555" stroke="#000" stroke-width="2"/>
+    <rect id="pis" y="385" width="14" height="60" fill="#000"/>
+    <rect x="275" y="380" width="250" height="70" fill="none" stroke="#000" stroke-width="3"/>
+    <text x="400" y="474" text-anchor="middle" style="font-weight:bold;font-size:15px">Vérin double effet (2A)</text>
+  </g>
+  </svg>
+
+  <p class="cap" id="cap" aria-live="polite"></p>
+  <div class="leg">
+    <span><i style="background:#E02B2B"></i>Pression (P) et pilotage</span>
+    <span><i style="background:#1F6FD0"></i>Évacuation / retour réservoir (T)</span>
+    <span><i style="background:#B5B5B5"></i>Fluide bloqué (sans circulation)</span>
+  </div>
+
+  <div class="sym">
+    <svg viewBox="0 0 480 240" role="img" aria-label="Symbole du distributeur 4/3">
+      <defs>
+        <marker id="sk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#000"/></marker>
+        <marker id="sr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#E02B2B"/></marker>
+        <marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#1F6FD0"/></marker>
+      </defs>
+      <g id="sbox" stroke="#000" stroke-width="3">
+        <rect x="60" y="70" width="120" height="100"/><rect x="180" y="70" width="120" height="100"/><rect x="300" y="70" width="120" height="100"/>
+        <line x1="216" y1="40" x2="216" y2="70"/><line x1="264" y1="40" x2="264" y2="70"/>
+        <line x1="216" y1="170" x2="216" y2="200"/><line x1="264" y1="170" x2="264" y2="200"/>
+        <line x1="8" y1="120" x2="56" y2="120" marker-end="url(#sk)"/><line x1="472" y1="120" x2="424" y2="120" marker-end="url(#sk)"/>
+      </g>
+      <g style="font-weight:bold;font-size:22px">
+        <text x="206" y="54" text-anchor="end">A</text><text x="274" y="54">B</text>
+        <text x="206" y="206" text-anchor="end">P</text><text x="274" y="206">T</text>
+        <text x="12" y="108">2</text><text x="458" y="108">1</text>
+      </g>
+      <g id="symc" stroke-width="3" fill="none"></g>
+    </svg>
+    <div>
+      <h3>Compléter le symbole</h3>
+      <ol id="steps"></ol>
+      <p id="ctr" style="margin:0;font-size:14px"></p>
+      <p id="usecase" class="usecase"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root=document.getElementById('dv3'),$=function(i){return root.querySelector('#'+i)};
+  var NS='http://www.w3.org/2000/svg',RED='#E02B2B',BLUE='#1F6FD0',GREY='#B5B5B5',LIGHT='#D8D8D8';
+  var SH={'2':60,'0':0,'1':-60},PMIN=312,PMAX=477;
+  var D={P:'M393 210V270',T:'M600 210V290',A:'M499 210V380',B:'M301 210V380'};
+  var pipe={},flow={};
+  Object.keys(D).forEach(function(k){
+    var p=document.createElementNS(NS,'path');p.setAttribute('d',D[k]);p.setAttribute('class','pipe');
+    var f=document.createElementNS(NS,'path');f.setAttribute('d',D[k]);f.setAttribute('class','fl');
+    $('pipes').appendChild(p);$('pipes').appendChild(f);pipe[k]=p;flow[k]=f;
+  });
+
+  var CENTERS={
+    closed:{
+      name:'Centre fermé',
+      title:'Distributeur 4/3 à centre fermé (2D)',
+      l1a:276,l1b:326,l2a:474,l2b:524,bored:false,
+      use:'Application : maintien d’une charge en position (ex. : vérin de bridage ou de levage avec clapet piloté). La pompe débite au tarage du limiteur de pression 1R.',
+      txt0:'Aucun pilotage (Centre fermé) : les portées larges du tiroir bouchent simultanément A, B et P. Le vérin est hydrauliquement verrouillé en position. Le débit de la pompe retourne au réservoir par le limiteur de pression 1R (échauffement de l’huile).',
+      steps0:[
+        'Repère la case du milieu : elle correspond à la position repos du tiroir.',
+        'Sur chacun des 4 orifices (A, B, P et T), trace un trait d’arrêt en « T » : toutes les voies sont isolées.',
+        'Écris « centre fermé » : le vérin est bloqué et la pompe reste sous pression.'
+      ]
+    },
+    open:{
+      name:'Centre ouvert',
+      title:'Distributeur 4/3 à centre ouvert (2D)',
+      l1a:292,l1b:310,l2a:490,l2b:508,bored:false,
+      use:'Application : mise à vide de la pompe à l’arrêt (économie d’énergie, pas d’échauffement) et possibilité de déplacer manuellement la tige du vérin.',
+      txt0:'Aucun pilotage (Centre ouvert) : les portées étroites du tiroir laissent passer l’huile tout autour. P, A, B et T communiquent ensemble vers le réservoir : la pompe débite à vide sans pression et le vérin est libre (non verrouillé).',
+      steps0:[
+        'Repère la case du milieu : tous les orifices doivent être reliés entre eux.',
+        'Trace une liaison verticale directe entre P et A, puis relie horizontalement les branches vers B et T.',
+        'Écris « centre ouvert » : la pompe débite à la bâche et le vérin est libre.'
+      ]
+    },
+    tandem:{
+      name:'Centre tandem',
+      title:'Distributeur 4/3 à centre tandem (2D)',
+      l1a:276,l1b:326,l2a:474,l2b:524,bored:true,
+      use:'Application : maintien du vérin en position (A et B fermés) tout en déchargeant la pompe vers le réservoir (P vers T) pour éviter l’échauffement.',
+      txt0:'Aucun pilotage (Centre tandem) : les portées bouchent A et B (le vérin reste bloqué en position), mais un perçage interne dans l’axe du tiroir relie la chambre centrale (P) à la chambre droite (T) : la pompe débite librement au réservoir.',
+      steps0:[
+        'Repère la case du milieu : les orifices récepteurs A et B sont isolés.',
+        'Trace un « T » d’arrêt sur A et sur B (vérin bloqué), puis trace une liaison directe de P vers T.',
+        'Écris « centre tandem » : le vérin est verrouillé et la pompe est mise à vide.'
+      ]
+    },
+    y:{
+      name:'Centre en Y (chaise)',
+      title:'Distributeur 4/3 à centre en Y / chaise (2D)',
+      l1a:292,l1b:326,l2a:474,l2b:508,bored:false,
+      use:'Application : décompression des deux chambres du vérin à l’arrêt (alignement mécanique possible) tout en maintenant la pression sur la ligne P.',
+      txt0:'Aucun pilotage (Centre en Y) : la portée centrale isole uniquement l’orifice P (la pompe reste sous pression via le limiteur 1R), tandis que A et B communiquent avec les chambres d’extrémité reliées à T : le vérin est libre.',
+      steps0:[
+        'Repère la case du milieu : seul l’orifice de pression P est bloqué.',
+        'Trace un « T » d’arrêt sur P, puis relie A et B ensemble vers T (forme de Y renversé / chaise).',
+        'Écris « centre en Y » : la pression P est maintenue et le vérin est libre.'
+      ]
+    }
+  };
+
+  var TXT_2='Pilotage 2 : le tiroir est poussé vers la droite. L’huile sous pression arrive en P, traverse la chambre centrale et sort par A vers le fond du vérin : la tige sort. L’huile chassée côté tige remonte par B, passe à gauche et rejoint T vers le réservoir.';
+  var TXT_1='Pilotage 1 : le tiroir est poussé vers la gauche. L’huile arrive en P, traverse la chambre centrale et sort par B vers le côté tige : la tige rentre. L’huile chassée côté fond remonte par A, passe à droite et rejoint T vers le réservoir.';
+
+  var STEPS_SIDE={
+    '2':[
+      'Repère la case de gauche : elle vient en face des orifices quand le pilotage 2 pousse le tiroir à droite.',
+      'Trace une flèche droite de P vers A (en rouge) : l’huile sous pression alimente le côté fond.',
+      'Trace une flèche droite de B vers T (en bleu) : l’huile côté tige retourne au réservoir.'
+    ],
+    '1':[
+      'Repère la case de droite : elle vient en face des orifices quand le pilotage 1 pousse le tiroir à gauche.',
+      'Trace une flèche croisée de P vers B (en rouge) : l’huile sous pression alimente le côté tige.',
+      'Trace une flèche croisée de A vers T (en bleu) : l’huile côté fond retourne au réservoir.'
+    ]
+  };
+
+  var center='closed',pos='0',s=0,target=0,px=395,last=null;
+
+  function drawSpool(){
+    var c=CENTERS[center];
+    var h='<g fill="#8E959B" stroke="#000" stroke-width="1.5">';
+    // Tige centrale
+    h+='<rect x="112" y="122" width="588" height="16"/>';
+    // Portées d'extrémité
+    h+='<rect x="112" y="100" width="24" height="60"/>';
+    h+='<rect x="676" y="100" width="24" height="60"/>';
+    // Portées centrales adaptées au type de centre
+    h+='<rect x="'+c.l1a+'" y="100" width="'+(c.l1b-c.l1a)+'" height="60"/>';
+    h+='<rect x="'+c.l2a+'" y="100" width="'+(c.l2b-c.l2a)+'" height="60"/>';
+    h+='</g>';
+    // Perçage interne pour centre tandem (relie chambre centrale à chambre droite)
+    if(c.bored){
+      h+='<rect id="bore" x="405" y="126" width="145" height="8" fill="#1F6FD0" stroke="#000" stroke-width="1"/>';
+      h+='<rect x="415" y="116" width="10" height="12" fill="#1F6FD0" stroke="#000" stroke-width="1"/>';
+      h+='<rect x="532" y="116" width="10" height="12" fill="#1F6FD0" stroke="#000" stroke-width="1"/>';
+    }
+    $('spool').innerHTML=h;
+  }
+
+  function updateTooltips(){
+    $('t2').textContent=TXT_2;
+    $('t1').textContent=TXT_1;
+    $('t0').textContent=CENTERS[center].txt0;
+  }
+
+  function ln(x1,y1,x2,y2,c,m,d){
+    return '<line class="pop" style="animation-delay:'+d+'s" x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'"'+(m?' marker-end="url(#'+m+')"':'')+'/>';
+  }
+
+  function sym(){
+    var h='',c=CENTERS[center];
+    $('sbox').querySelectorAll('rect').forEach(function(r,j){
+      r.setAttribute('fill',(pos==='2'&&j===0)||(pos==='0'&&j===1)||(pos==='1'&&j===2)?'#EDEDED':'#fff');
+    });
+    if(pos==='2'){
+      h=ln(96,160,96,82,RED,'sr',.2)+ln(144,82,144,160,BLUE,'sb',.6);
+    }else if(pos==='1'){
+      h=ln(336,160,384,82,RED,'sr',.2)+ln(336,82,384,160,BLUE,'sb',.6);
+    }else{
+      if(center==='closed'){
+        [216,264].forEach(function(x,j){
+          h+=ln(x,70,x,86,'#000',0,.2+j*.2)+ln(x-9,86,x+9,86,'#000',0,.2+j*.2)
+            +ln(x,170,x,154,'#000',0,.5+j*.2)+ln(x-9,154,x+9,154,'#000',0,.5+j*.2);
+        });
+      }else if(center==='open'){
+        h+=ln(216,170,216,70,BLUE,0,.2)+ln(264,170,264,70,BLUE,0,.4)+ln(216,120,264,120,BLUE,0,.6);
+      }else if(center==='tandem'){
+        // A et B bloqués, P relié à T
+        [216,264].forEach(function(x,j){
+          h+=ln(x,70,x,86,'#000',0,.2+j*.2)+ln(x-9,86,x+9,86,'#000',0,.2+j*.2);
+        });
+        h+=ln(216,170,216,135,BLUE,0,.5)+ln(216,135,264,135,BLUE,0,.6)+ln(264,135,264,170,BLUE,'sb',.7);
+      }else if(center==='y'){
+        // P bloqué, A et B reliés à T
+        h+=ln(216,170,216,152,'#000',0,.2)+ln(207,152,225,152,'#000',0,.2);
+        h+=ln(216,70,216,115,BLUE,0,.4)+ln(216,115,264,115,BLUE,0,.5)+ln(264,70,264,170,BLUE,'sb',.6);
+      }
+    }
+    $('symc').innerHTML=h;
+    var st=pos==='0'?c.steps0:STEPS_SIDE[pos];
+    $('steps').innerHTML=st.map(function(t){return '<li>'+t+'</li>'}).join('');
+    $('ctr').innerHTML='<b>Type de centre :</b> '+(pos==='0'?c.name.toLowerCase():'………… (voir position centrale : '+c.name.toLowerCase()+')');
+    $('usecase').textContent=c.use;
+  }
+
+  function set(id,a){for(var k in a)if($(id))$(id).setAttribute(k,a[k])}
+  function fl(k,on,rev){flow[k].setAttribute('class','fl'+(on?' on':'')+(rev?' rev':''))}
+
+  function render(){
+    var c=CENTERS[center];
+    $('spool').setAttribute('transform','translate('+s+' 0)');
+    var e1=136+s,l1a=c.l1a+s,l1b=c.l1b+s,l2a=c.l2a+s,l2b=c.l2b+s,e2=676+s;
+
+    // Couleur de la chambre centrale selon le centre et la position
+    var isCenter=Math.abs(s)<2 && pos==='0';
+    var midCol=RED;
+    if(isCenter && (center==='open' || center==='tandem')) midCol=BLUE;
+
+    set('ch0',{x:e1,width:l1a-e1,fill:BLUE});
+    set('ch1',{x:l1b,width:l2a-l1b,fill:midCol});
+    set('ch2',{x:l2b,width:e2-l2b,fill:BLUE});
+
+    function col(x){
+      if(x>e1 && x<l1a) return BLUE;
+      if(x>l1b && x<l2a) return midCol;
+      if(x>l2b && x<e2) return BLUE;
+      return GREY;
+    }
+
+    var cb=col(301),ca=col(499),cp=col(393);
+    set('rB',{fill:cb});set('rA',{fill:ca});set('rP',{fill:cp});set('rT',{fill:BLUE});
+
+    var p2=pos==='2',p1=pos==='1';
+    set('pL',{x:30,width:112+s-30,fill:p2?RED:LIGHT});set('pl',{fill:p2?RED:LIGHT});
+    set('pR',{x:700+s,width:790-700-s,fill:p1?RED:LIGHT});set('pr',{fill:p1?RED:LIGHT});
+    set('ar2',{stroke:p2?RED:'#000','marker-end':p2?'url(#ahr)':'url(#ah)'});
+    set('ar1',{stroke:p1?RED:'#000','marker-end':p1?'url(#ahr)':'url(#ah)'});
+
+    var dir=0;
+    if(ca===RED && cb===BLUE) dir=-1;
+    else if(cb===RED && ca===BLUE) dir=1;
+
+    var stop=(dir===-1 && px<=PMIN) || (dir===1 && px>=PMAX);
+    var run=dir!==0 && !stop;
+    // Circulation pompe -> réservoir en position centrale pour centre ouvert ou tandem
+    var bypass=isCenter && (center==='open' || center==='tandem');
+
+    pipe.P.setAttribute('stroke',cp);
+    pipe.T.setAttribute('stroke',BLUE);
+    pipe.A.setAttribute('stroke',ca);
+    pipe.B.setAttribute('stroke',cb);
+
+    fl('P',run || bypass);
+    fl('T',run || bypass);
+    fl('A',run,cb===RED);
+    fl('B',run,ca===RED);
+    $('dU').setAttribute('class','fl'+((run && ca===RED) || (isCenter && center==='open')?' on':''));
+
+    set('cRod',{width:px-280,fill:cb});
+    set('cCap',{x:px+14,width:520-px-14,fill:ca});
+    set('pis',{x:px});
+    set('rod',{x:px-240});
+
+    var baseTxt=pos==='0'?c.txt0:(pos==='2'?TXT_2:TXT_1);
+    $('cap').textContent=Math.abs(s-target)<0.5
+      ? baseTxt+(stop?' Le piston est en butée : la circulation vers le vérin s’arrête.':'')
+      : 'Le tiroir se déplace…';
+
+    return run?dir:0;
+  }
+
+  function tick(t){
+    if(last===null)last=t;
+    var dt=Math.min(50,t-last)/1000;last=t;
+    var d=target-s,st=150*dt;
+    s=Math.abs(d)<=st?target:s+(d>0?st:-st);
+    var m=render();
+    if(m)px=Math.max(PMIN,Math.min(PMAX,px+m*100*dt));
+    requestAnimationFrame(tick);
+  }
+
+  // Événements : choix du centre
+  root.querySelectorAll('.cbar button').forEach(function(b){
+    b.addEventListener('click',function(){
+      center=b.getAttribute('data-c');
+      $('titleSvg').textContent=CENTERS[center].title;
+      drawSpool();
+      updateTooltips();
+      sym();
+      root.querySelectorAll('.cbar button').forEach(function(o){o.setAttribute('aria-pressed',o===b)});
+    });
+  });
+
+  // Événements : choix du pilotage
+  root.querySelectorAll('.pbar button').forEach(function(b){
+    b.addEventListener('click',function(){
+      pos=b.getAttribute('data-p');
+      target=SH[pos];
+      sym();
+      root.querySelectorAll('.pbar button').forEach(function(o){o.setAttribute('aria-pressed',o===b)});
+    });
+  });
+
+  drawSpool();
+  updateTooltips();
+  sym();
+  requestAnimationFrame(tick);
+})();
+</script>
+<!-- ====== FIN DU WIDGET ====== -->
+
+</body>
+</html>
